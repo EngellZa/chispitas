@@ -1,0 +1,70 @@
+{% extends 'tienda/base.html' %}
+
+{% block title %}Pedido Confirmado - Chispitas{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-3xl shadow-2xl p-12 text-center animate-slide-in">
+        <div class="mb-6">
+            <div class="w-24 h-24 bg-gradient-to-br from-green-400 to-teal-400 rounded-full mx-auto flex items-center justify-center animate-bounce">
+                <span class="text-5xl">💖</span>
+            </div>
+        </div>
+        
+        <h2 class="text-4xl font-bold text-green-600 mb-4">
+            ¡Pedido Confirmado! 🎉
+        </h2>
+        
+        <div class="bg-purple-50 rounded-xl p-6 mb-6 border-2 border-purple-200">
+            <p class="text-sm text-purple-900 mb-2">
+                <strong>Número de Pedido:</strong> #{{ pedido.id }}
+            </p>
+            <p class="text-sm text-purple-900 mb-2">
+                <strong>Total Pagado:</strong> {{ pedido.total_formateado }}
+            </p>
+            <p class="text-sm text-purple-900">
+                <strong>Comprobante SINPE:</strong> {{ pedido.comprobante_sinpe }}
+            </p>
+        </div>
+        
+        <p class="text-gray-700 mb-6">
+            ¡Gracias por tu compra en Chispitas! Revisaremos tu pago y te contactaremos pronto por WhatsApp al <strong>{{ pedido.telefono }}</strong> para coordinar la entrega.
+        </p>
+        
+        <div class="bg-blue-50 rounded-xl p-4 mb-6 border-2 border-blue-200">
+            <p class="text-sm text-blue-800">
+                📧 Te enviamos los detalles a tu correo<br/>
+                📱 Te escribiremos al WhatsApp que nos diste<br/>
+                📦 Tu pedido será entregado en: <br/>
+                <strong class="text-purple-900">{{ pedido.direccion }}</strong>
+            </p>
+        </div>
+
+        <div class="space-y-3">
+            <a href="{% url 'tienda:index' %}" class="block btn-primary text-white px-8 py-3 rounded-xl font-bold shadow-lg">
+                Seguir Comprando 🛍️
+            </a>
+            
+            <p class="text-xs text-gray-500">
+                Estado del pedido: <span class="font-bold text-purple-600">{{ pedido.get_estado_display }}</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Detalles del Pedido -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mt-6 animate-slide-in" style="animation-delay: 0.2s;">
+        <h3 class="text-xl font-bold text-purple-900 mb-4">Productos de tu Pedido:</h3>
+        <div class="space-y-3">
+            {% for item in pedido.items.all %}
+            <div class="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                <div>
+                    <p class="font-semibold text-purple-900">{{ item.producto.nombre }}</p>
+                    <p class="text-sm text-gray-600">Cantidad: {{ item.cantidad }} x {{ item.precio_unitario|floatformat:0 }}</p>
+                </div>
+                <p class="font-bold text-pink-600">{{ item.subtotal_formateado }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

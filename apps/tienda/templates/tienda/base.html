@@ -1,0 +1,195 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Chispitas - Tienda para Niñas{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        * {
+            font-family: 'Quicksand', sans-serif;
+        }
+        
+        h1, h2, h3, .logo {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+            50% { opacity: 0.6; transform: scale(1.2) rotate(180deg); }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .animate-sparkle {
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        .animate-slide-in {
+            animation: slideInUp 0.5s ease-out;
+        }
+
+        .product-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .product-card:hover {
+            transform: translateY(-8px) rotate(-1deg);
+        }
+
+        .sparkle-bg {
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(255, 192, 203, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(200, 150, 255, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(135, 206, 250, 0.2) 0%, transparent 50%);
+        }
+
+        .cart-badge {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .8;
+                transform: scale(1.1);
+            }
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #db2777 0%, #7c3aed 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(236, 72, 153, 0.4);
+        }
+
+        .category-btn {
+            transition: all 0.3s ease;
+        }
+
+        .category-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .category-btn.active {
+            background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .message {
+            animation: slideInUp 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
+    
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-lg border-b-4 border-pink-300">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <a href="{% url 'tienda:index' %}" class="flex items-center gap-3">
+                    <span class="text-4xl animate-sparkle">✨</span>
+                    <h1 class="logo text-3xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
+                        Chispitas
+                    </h1>
+                    <span class="text-2xl animate-float">⭐</span>
+                </a>
+
+                <div class="flex items-center gap-4">
+                    <form method="GET" action="{% url 'tienda:index' %}" class="hidden md:flex items-center bg-purple-50 rounded-full px-4 py-2 border-2 border-purple-200">
+                        <span class="text-purple-400 mr-2">🔍</span>
+                        <input
+                            type="text"
+                            name="search"
+                            placeholder="Buscar productos..."
+                            value="{{ search }}"
+                            class="bg-transparent outline-none text-sm w-48"
+                        />
+                    </form>
+
+                    <a href="{% url 'tienda:ver_carrito' %}" class="relative bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105">
+                        🛒 Carrito
+                        {% if cart_count > 0 %}
+                        <span class="cart-badge absolute -top-2 -right-2 bg-yellow-400 text-purple-900 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">
+                            {{ cart_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 py-4">
+        {% for message in messages %}
+        <div class="message mb-2 p-4 rounded-xl border-2 {% if message.tags == 'success' %}bg-green-50 border-green-300 text-green-800{% elif message.tags == 'error' %}bg-red-50 border-red-300 text-red-800{% elif message.tags == 'warning' %}bg-yellow-50 border-yellow-300 text-yellow-800{% else %}bg-blue-50 border-blue-300 text-blue-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Content -->
+    {% block content %}{% endblock %}
+
+    <!-- Footer -->
+    <footer class="bg-gradient-to-r from-purple-900 to-pink-900 text-white py-12 mt-20">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <div class="flex items-center justify-center gap-3 mb-4">
+                <span class="text-2xl animate-sparkle">✨</span>
+                <h3 class="text-2xl font-bold">Chispitas</h3>
+                <span class="text-xl animate-float">⭐</span>
+            </div>
+            <p class="text-purple-200 mb-4">
+                Todo para tu princesa en Costa Rica 💖
+            </p>
+            <div class="flex flex-wrap justify-center gap-6 text-sm mb-6">
+                <a href="#" class="hover:text-pink-300 transition">📱 WhatsApp: 8888-8888</a>
+                <a href="#" class="hover:text-pink-300 transition">📧 info@chispitas.cr</a>
+                <a href="#" class="hover:text-pink-300 transition">📍 San José, Costa Rica</a>
+            </div>
+            <div class="border-t border-purple-700 pt-6">
+                <p class="text-purple-300 text-sm">
+                    © 2026 Chispitas CR. Todos los derechos reservados. ✨
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
