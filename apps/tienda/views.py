@@ -42,7 +42,8 @@ def agregar_al_carrito(request, producto_id):
             'nombre': producto.nombre,
             'precio': float(producto.precio),
             'cantidad': cantidad_actual + 1,
-            'imagen': producto.imagen,
+            # 🔥 AQUÍ ESTÁ EL ARREGLO
+            'imagen': producto.imagen.url if producto.imagen else '',
         }
         messages.success(request, f'¡{producto.nombre} agregado al carrito!')
     else:
@@ -59,20 +60,16 @@ def ver_carrito(request):
     carrito = request.session.get('carrito', {})
     items = []
     total = 0
-
-    # Para poder eliminar items con stock 0 sin romper el loop
     productos_a_eliminar = []
 
     for producto_id, item in carrito.items():
         producto = get_object_or_404(Producto, id=int(producto_id), activo=True)
 
-        # Si no hay stock, lo quitamos del carrito
         if producto.stock <= 0:
             productos_a_eliminar.append(producto_id)
             messages.warning(request, f'{producto.nombre} ya no tiene stock y se eliminó del carrito.')
             continue
 
-        # Si la cantidad en sesión es mayor al stock actual, ajustarla
         if item['cantidad'] > producto.stock:
             item['cantidad'] = producto.stock
             messages.warning(
@@ -88,12 +85,12 @@ def ver_carrito(request):
             'nombre': producto.nombre,
             'precio': float(producto.precio),
             'cantidad': item['cantidad'],
-            'imagen': producto.imagen,
+            # 🔥 Usamos la URL guardada en sesión
+            'imagen': item.get('imagen', ''),
             'stock': producto.stock,
             'subtotal': subtotal,
         })
 
-    # Eliminar los productos sin stock del carrito
     for pid in productos_a_eliminar:
         carrito.pop(pid, None)
 
@@ -107,7 +104,6 @@ def ver_carrito(request):
 
 
 def actualizar_cantidad(request, producto_id):
-    """Actualizar cantidad en carrito"""
     if request.method == 'POST':
         carrito = request.session.get('carrito', {})
         producto_id_str = str(producto_id)
@@ -136,7 +132,6 @@ def actualizar_cantidad(request, producto_id):
 
 
 def eliminar_del_carrito(request, producto_id):
-    """Eliminar producto del carrito"""
     carrito = request.session.get('carrito', {})
     producto_id_str = str(producto_id)
 
@@ -151,7 +146,6 @@ def eliminar_del_carrito(request, producto_id):
 
 
 def checkout(request):
-    """Proceso de pago seguro"""
     carrito = request.session.get('carrito', {})
 
     if not carrito:
@@ -161,21 +155,20 @@ def checkout(request):
     items = []
     total = 0
 
-    # Recalcular todo desde DB (y validar stock)
     for producto_id, item in carrito.items():
         producto = get_object_or_404(Producto, id=int(producto_id), activo=True)
         cantidad = int(item['cantidad'])
 
         if cantidad <= 0:
-            messages.warning(request, 'Hay un producto con cantidad inválida en el carrito.')
-            return redirect('ver_carrito')
+            messages.warning(request, 'Hay un producto con cantidad inválida.')
+            return redirect('tienda:ver_carrito')
 
         if cantidad > producto.stock:
             messages.warning(
                 request,
                 f'No hay stock suficiente de {producto.nombre}. Disponible: {producto.stock}'
             )
-            return redirect('ver_carrito')
+            return redirect('tienda:ver_carrito')
 
         subtotal = float(producto.precio) * cantidad
         total += subtotal
@@ -189,7 +182,6 @@ def checkout(request):
     if request.method == 'POST':
         with transaction.atomic():
 
-            # Crear el pedido
             pedido = Pedido.objects.create(
                 nombre_cliente=request.POST.get('nombre'),
                 telefono=request.POST.get('telefono'),
@@ -199,7 +191,6 @@ def checkout(request):
                 total=total,
             )
 
-            # Crear items y descontar stock con verificación
             for item in items:
                 ItemPedido.objects.create(
                     pedido=pedido,
@@ -213,16 +204,9 @@ def checkout(request):
                     stock__gte=item['cantidad']
                 ).update(stock=F('stock') - item['cantidad'])
 
-                # Si no actualizó, significa que el stock cambió entre validación y pago
                 if updated == 0:
-                    messages.warning(
-                        request,
-                        f'El stock de {item["producto"].nombre} cambió. Intenta de nuevo.'
-                    )
-                    # Lanzamos excepción para que se revierta la transacción
                     raise ValueError("Stock cambió durante el checkout")
 
-            # Limpiar carrito
             request.session['carrito'] = {}
             request.session.modified = True
 

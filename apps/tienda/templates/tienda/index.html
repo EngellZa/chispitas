@@ -1,4 +1,5 @@
 {% extends 'tienda/base.html' %}
+{% load static %}
 
 {% block content %}
 <!-- Hero Section -->
@@ -16,13 +17,13 @@
 <!-- Categorías -->
 <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="flex flex-wrap gap-3 justify-center mb-8">
-        <a href="{% url 'tienda:index' %}" 
+        <a href="{% url 'tienda:index' %}"
            class="category-btn px-6 py-3 rounded-full font-semibold shadow-md border-2 {% if not categoria_actual %}active border-pink-500{% else %}bg-white border-purple-200 text-purple-700 hover:border-pink-300{% endif %}">
             <span class="text-xl mr-2">✨</span>
             Todos
         </a>
         {% for cat in categorias %}
-        <a href="?categoria={{ cat.slug }}" 
+        <a href="?categoria={{ cat.slug }}"
            class="category-btn px-6 py-3 rounded-full font-semibold shadow-md border-2 {% if categoria_actual == cat.slug %}active border-pink-500{% else %}bg-white border-purple-200 text-purple-700 hover:border-pink-300{% endif %}">
             <span class="text-xl mr-2">{{ cat.emoji }}</span>
             {{ cat.nombre }}
@@ -35,14 +36,26 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for producto in productos %}
         <div class="product-card bg-white rounded-2xl shadow-lg overflow-hidden border-2 border-purple-100 hover:border-pink-300 hover:shadow-2xl">
-            <div class="bg-gradient-to-br from-pink-100 to-purple-100 p-8 flex items-center justify-center h-48">
-                <span class="text-7xl animate-float">{{ producto.imagen }}</span>
+            <div class="bg-gradient-to-br from-pink-100 to-purple-100 p-4 flex items-center justify-center h-48">
+                {% if producto.imagen %}
+                    <img src="{{ producto.imagen.url }}"
+                         alt="{{ producto.nombre }}"
+                         class="h-full max-h-40 w-auto object-contain animate-float">
+                {% else %}
+                    <img src="{% static 'img/placeholder.png' %}"
+                         alt="Sin imagen"
+                         class="h-full max-h-40 w-auto object-contain opacity-80">
+                {% endif %}
             </div>
+
             <div class="p-5">
                 <h3 class="font-bold text-lg text-purple-900 mb-2">
                     {{ producto.nombre }}
                 </h3>
-                <p class="text-sm text-gray-600 mb-3">{{ producto.descripcion|truncatewords:10 }}</p>
+                <p class="text-sm text-gray-600 mb-3">
+                    {{ producto.descripcion|truncatewords:10 }}
+                </p>
+
                 <div class="flex items-center justify-between mb-4">
                     <span class="text-2xl font-bold text-pink-600">
                         {{ producto.precio_formateado }}
@@ -51,6 +64,7 @@
                         Stock: {{ producto.stock }}
                     </span>
                 </div>
+
                 <form method="POST" action="{% url 'tienda:agregar_al_carrito' producto.id %}">
                     {% csrf_token %}
                     <button

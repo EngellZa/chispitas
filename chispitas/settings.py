@@ -1,5 +1,5 @@
 """
-Django settings for chispitas_project project.
+Django settings for chispitas project.
 """
 
 from pathlib import Path
@@ -36,7 +36,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'chispitas_project.urls'
+ROOT_URLCONF = 'chispitas.urls'
 
 TEMPLATES = [
     {
@@ -55,7 +55,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'chispitas_project.wsgi.application'
+WSGI_APPLICATION = 'chispitas.wsgi.application'
 
 # Database
 DATABASES = {

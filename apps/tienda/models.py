@@ -1,116 +1,122 @@
 from django.db import models
 from django.utils.text import slugify
+from django.core.validators import MinValueValidator
+from django.conf import settings
 
 
 class Categoria(models.Model):
-    """Modelo para las categorías de productos"""
-    nombre = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(unique=True, blank=True)
-    emoji = models.CharField(max_length=10, default='✨')
+    emoji = models.CharField(max_length=10, default="✨")
     descripcion = models.TextField(blank=True)
     activo = models.BooleanField(default=True)
-    
+
     class Meta:
-        verbose_name = 'Categoría'
-        verbose_name_plural = 'Categorías'
-        ordering = ['nombre']
-    
+        verbose_name = "Categoría"
+        verbose_name_plural = "Categorías"
+        ordering = ["nombre"]
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.nombre)
         super().save(*args, **kwargs)
-    
+
     def __str__(self):
         return self.nombre
 
 
 class Producto(models.Model):
-    """Modelo para los productos"""
+    categoria = models.ForeignKey(
+        Categoria, on_delete=models.PROTECT, related_name="productos"
+    )
     nombre = models.CharField(max_length=200)
     slug = models.SlugField(unique=True, blank=True)
-    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='productos')
-    descripcion = models.TextField()
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
-    stock = models.PositiveIntegerField(default=0)
-    imagen = models.CharField(max_length=10, default='🎁', help_text='Emoji del producto')
+    descripcion = models.TextField(blank=True)
+
+    # Si vas a usar Cloudinary después, puedes cambiar esto por CloudinaryField
+    imagen = models.ImageField(upload_to="productos/", blank=True, null=True)
+
+    precio = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
+    stock = models.PositiveIntegerField(default=0)  # NO permite negativos
     activo = models.BooleanField(default=True)
-    destacado = models.BooleanField(default=False)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_actualizacion = models.DateTimeField(auto_now=True)
-    
+
+    creado = models.DateTimeField(auto_now_add=True)
+    actualizado = models.DateTimeField(auto_now=True)
+
     class Meta:
-        verbose_name = 'Producto'
-        verbose_name_plural = 'Productos'
-        ordering = ['-destacado', '-fecha_creacion']
-    
+        verbose_name = "Producto"
+        verbose_name_plural = "Productos"
+        ordering = ["-creado"]
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.nombre)
         super().save(*args, **kwargs)
-    
+
     def __str__(self):
         return self.nombre
-    
-    @property
-    def precio_formateado(self):
-        return f"₡{self.precio:,.0f}".replace(',', '.')
-    
-    def esta_disponible(self):
-        return self.activo and self.stock > 0
 
 
 class Pedido(models.Model):
-    """Modelo para los pedidos"""
-    ESTADO_CHOICES = [
-        ('pendiente', 'Pendiente'),
-        ('confirmado', 'Confirmado'),
-        ('enviado', 'Enviado'),
-        ('entregado', 'Entregado'),
-        ('cancelado', 'Cancelado'),
-    ]
-    
+    ESTADO_CHOICES = (
+        ("pendiente", "Pendiente"),
+        ("confirmado", "Confirmado"),
+        ("cancelado", "Cancelado"),
+        ("entregado", "Entregado"),
+    )
+
+    # Si tu tienda no tiene usuarios logueados, esto puede quedar null/blank
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pedidos",
+    )
+
     nombre_cliente = models.CharField(max_length=200)
-    telefono = models.CharField(max_length=20)
+    telefono = models.CharField(max_length=50)
     direccion = models.TextField()
     email = models.EmailField(blank=True)
-    comprobante_sinpe = models.CharField(max_length=50, help_text='Número de comprobante SINPE')
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
-    notas = models.TextField(blank=True)
-    fecha_pedido = models.DateTimeField(auto_now_add=True)
-    fecha_actualizacion = models.DateTimeField(auto_now=True)
-    
+
+    comprobante_sinpe = models.CharField(max_length=100, blank=True)
+
+    comprobante_sinpe_archivo = models.FileField(
+    upload_to='comprobantes_sinpe/',
+    blank=True,
+    null=True,
+    help_text="Sube imagen o PDF del comprobante SINPE"
+    )
+
+
+    total = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default="pendiente")
+
+    creado = models.DateTimeField(auto_now_add=True)
+
     class Meta:
-        verbose_name = 'Pedido'
-        verbose_name_plural = 'Pedidos'
-        ordering = ['-fecha_pedido']
-    
+        verbose_name = "Pedido"
+        verbose_name_plural = "Pedidos"
+        ordering = ["-creado"]
+
     def __str__(self):
         return f"Pedido #{self.id} - {self.nombre_cliente}"
-    
-    @property
-    def total_formateado(self):
-        return f"₡{self.total:,.0f}".replace(',', '.')
 
 
 class ItemPedido(models.Model):
-    """Modelo para los items de cada pedido"""
-    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='items')
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name="items")
+    producto = models.ForeignKey(Producto, on_delete=models.PROTECT, related_name="items_pedido")
+
     cantidad = models.PositiveIntegerField(default=1)
-    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
-    
+    precio_unitario = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
+
     class Meta:
-        verbose_name = 'Item de Pedido'
-        verbose_name_plural = 'Items de Pedido'
-    
+        verbose_name = "Ítem de Pedido"
+        verbose_name_plural = "Ítems de Pedido"
+
     def __str__(self):
-        return f"{self.cantidad}x {self.producto.nombre}"
-    
+        return f"{self.cantidad} x {self.producto.nombre}"
+
     @property
     def subtotal(self):
         return self.cantidad * self.precio_unitario
-    
-    @property
-    def subtotal_formateado(self):
-        return f"₡{self.subtotal:,.0f}".replace(',', '.')
