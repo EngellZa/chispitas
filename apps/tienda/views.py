@@ -5,6 +5,13 @@ from django.db import transaction
 
 from apps.tienda.models import Producto, Categoria, Pedido, ItemPedido
 
+from decimal import Decimal
+
+@property
+def precio_formateado(self):
+    return f"₡{self.precio:,.2f}"
+
+
 
 def index(request):
     """Vista principal de la tienda"""
