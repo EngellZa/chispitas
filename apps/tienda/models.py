@@ -18,7 +18,13 @@ class Categoria(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.nombre)
+            base = slugify(self.nombre)
+            slug = base
+            i = 1
+            while Categoria.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                i += 1
+                slug = f"{base}-{i}"
+            self.slug = slug
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -26,18 +32,15 @@ class Categoria(models.Model):
 
 
 class Producto(models.Model):
-    categoria = models.ForeignKey(
-        Categoria, on_delete=models.PROTECT, related_name="productos"
-    )
+    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT, related_name="productos")
     nombre = models.CharField(max_length=200)
     slug = models.SlugField(unique=True, blank=True)
     descripcion = models.TextField(blank=True)
 
-    # Si vas a usar Cloudinary después, puedes cambiar esto por CloudinaryField
     imagen = models.ImageField(upload_to="productos/", blank=True, null=True)
 
     precio = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
-    stock = models.PositiveIntegerField(default=0)  # NO permite negativos
+    stock = models.PositiveIntegerField(default=0)
     activo = models.BooleanField(default=True)
 
     creado = models.DateTimeField(auto_now_add=True)
@@ -50,7 +53,13 @@ class Producto(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.nombre)
+            base = slugify(self.nombre)
+            slug = base
+            i = 1
+            while Producto.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                i += 1
+                slug = f"{base}-{i}"
+            self.slug = slug
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -65,7 +74,6 @@ class Pedido(models.Model):
         ("entregado", "Entregado"),
     )
 
-    # Si tu tienda no tiene usuarios logueados, esto puede quedar null/blank
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -80,14 +88,12 @@ class Pedido(models.Model):
     email = models.EmailField(blank=True)
 
     comprobante_sinpe = models.CharField(max_length=100, blank=True)
-
     comprobante_sinpe_archivo = models.FileField(
-    upload_to='comprobantes_sinpe/',
-    blank=True,
-    null=True,
-    help_text="Sube imagen o PDF del comprobante SINPE"
+        upload_to="comprobantes_sinpe/",
+        blank=True,
+        null=True,
+        help_text="Sube imagen o PDF del comprobante SINPE",
     )
-
 
     total = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default="pendiente")
