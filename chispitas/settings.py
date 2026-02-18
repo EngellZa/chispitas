@@ -16,7 +16,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-tu-clave-secreta-aqui-cambiar-en-produccion'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv("DEBUG", "0") == "1"
+
 
 ALLOWED_HOSTS = ['*']
 
