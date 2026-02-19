@@ -234,4 +234,4 @@ def vaciar_carrito(request):
     request.session['carrito'] = {}
     request.session.modified = True
     messages.success(request, 'Carrito vaciado')
-    return redirect('index')
+    return redirect('tienda:index')
