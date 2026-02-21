@@ -59,7 +59,7 @@ def agregar_al_carrito(request, producto_id):
     request.session['carrito'] = carrito
     request.session.modified = True
 
-    return redirect(request.META.get('HTTP_REFERER', 'index'))
+    return redirect(request.META.get('HTTP_REFERER', 'tienda:index'))
 
 
 def ver_carrito(request):
